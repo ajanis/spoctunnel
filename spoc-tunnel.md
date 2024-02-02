@@ -3,21 +3,26 @@
 
 - [SPOC Tunnel BASH/ZSH Function](#spoc-tunnel-bashzsh-function)
   - [Requirements](#requirements)
-    - [Sudo privileges](#sudo-privileges)
-    - [Homebrew (MacOS) package manager](#homebrew-macos-package-manager)
-    - [SSHuttle](#sshuttle)
-    - [SSHPass (Optional)](#sshpass-optional)
-    - [Providing password through 1Password or MacOS Keychain](#providing-password-through-1password-or-macos-keychain)
-      - [1Password](#1password)
-      - [MacOS Keychain](#macos-keychain)
-  - [Modify your sshuttle command to ONLY send DNS requests for 'spoc.charterlab.com' to the sshuttle jumphost](#modify-your-sshuttle-command-to-only-send-dns-requests-for-spoccharterlabcom-to-the-sshuttle-jumphost)
+    - [Set up Sudo privileges](#set-up-sudo-privileges)
+    - [Install Homebrew (MacOS) package manager](#install-homebrew-macos-package-manager)
+    - [Install SSHuttle utility from Homebrew](#install-sshuttle-utility-from-homebrew)
+    - [Install SSHPass utility from Homebrew](#install-sshpass-utility-from-homebrew)
+  - [Storing and Retrieving your password securely using the MacOS Keychain](#storing-and-retrieving-your-password-securely-using-the-macos-keychain)
+    - [Adding your password to the MacOS Keychain](#adding-your-password-to-the-macos-keychain)
+    - [Retrieving your password from the MacOS Keychain](#retrieving-your-password-from-the-macos-keychain)
+  - [Modify your sshuttle command to send DNS requests for ONLY 'spoc.charterlab.com' to the sshuttle jumphost.](#modify-your-sshuttle-command-to-send-dns-requests-for-only-spoccharterlabcom-to-the-sshuttle-jumphost)
     - [Create a domain-specific-DNS configuration for the SPOC Lab](#create-a-domain-specific-dns-configuration-for-the-spoc-lab)
+      - [Create the directory /etc/resolver](#create-the-directory-etcresolver)
+      - [Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com](#create-the-resolver-file-for-spoc-at-etcresolverspoccharterlabcom)
+      - [Verify the new resolver for spoc.charterlab.com is present with the following command](#verify-the-new-resolver-for-spoccharterlabcom-is-present-with-the-following-command)
     - [Create files for `allow` and `deny`  that will be used by `sshuttle`](#create-files-for-allow-and-deny--that-will-be-used-by-sshuttle)
-  - [Run the `sshuttle` command in your terminal](#run-the-sshuttle-command-in-your-terminal)
-  - [Stop Here if you do not wish to create the helper functiond or use a \[password-manager to securely inject credentials\]\[def7\]](#stop-here-if-you-do-not-wish-to-create-the-helper-functiond-or-use-a-password-manager-to-securely-inject-credentialsdef7)
-  - [Create the function that we will use to start and stop the `sshuttle` process](#create-the-function-that-we-will-use-to-start-and-stop-the-sshuttle-process)
-    - [Include ~/.spoc.rc you just created in your $SHELL profile / rcfile](#include-spocrc-you-just-created-in-your-shell-profile--rcfile)
-  - [Run sshuttle helper](#run-sshuttle-helper)
+      - [Create the sshuttle **ALLOW** file by running the following command](#create-the-sshuttle-allow-file-by-running-the-following-command)
+      - [Create the sshuttle **DENY** file by running the following command](#create-the-sshuttle-deny-file-by-running-the-following-command)
+  - [Running SSHuttle from your terminal](#running-sshuttle-from-your-terminal)
+  - [SSHUTTLE HELPER FUNCTION - Easily start and stop  the `sshuttle` process in the background and securely inject your password from MacOS Keychain](#sshuttle-helper-function---easily-start-and-stop--the-sshuttle-process-in-the-background-and-securely-inject-your-password-from-macos-keychain)
+    - [Creating the Helper Script](#creating-the-helper-script)
+    - [Include ~/.spoc.rc Helper Script just created in your SHELL profile / rcfile](#include-spocrc-helper-script-just-created-in-your-shell-profile--rcfile)
+  - [Runing the SSHuttle Helper Script](#runing-the-sshuttle-helper-script)
 
 This document includes two main sections.
 
@@ -27,7 +32,17 @@ This document includes two main sections.
 
 ## Requirements
 
-### Sudo privileges
+You will need to set up the following:
+
+- Sudo Privileges
+- Install Homebrew
+- Install SSHuttle
+- Install sshpass
+- Add your SPOC password to the MacOS Keychain
+- Set up custom DNS Resolver for the `spoc.charterlab.com` domain
+
+
+### Set up Sudo privileges
 
 You will need to modify /etc/sudoers if you have not already so you can run commands as a privileged user.
 
@@ -46,17 +61,21 @@ root        ALL = (ALL) ALL
 %admin      ALL = (ALL) ALL : ALL = (ALL) NOPASSWD: CUSTOM
 ```
 
-### Homebrew (MacOS) package manager
+### Install Homebrew (MacOS) package manager
 
 - [Homebrew Installation Instructions](https://docs.brew.sh/Installation)
+- Installation Script:
+```shell
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
-### SSHuttle
+### Install SSHuttle utility from Homebrew
 
 ```bash
 brew install sshuttle
 ```
 
-### SSHPass (Optional)
+### Install SSHPass utility from Homebrew
 
 *This utility allows you to forward a password to the `ssh` command.
 This example uses an environment variable that in turn uses a password manager to securely pipe password information to `sshuttle`.*
@@ -68,63 +87,55 @@ brew tap ajanis/custombrew
 brew install ajanis/custombrew/sshpass
 ```
 
-### Providing password through 1Password or MacOS Keychain
+## Storing and Retrieving your password securely using the MacOS Keychain
+You can store your SPOC VPN password in your MacOS Keychain.  Even if you use a password manager, securely storing a password in the MacOS Keychain will give you a secure method of including the password in a script or CLI utility.
 
-*We can securely provide a password to `sshpass` by using a password-management application with a CLI component.  Provided here are examples for 1Password and the MacOS built-in Keychain.*
+### Adding your password to the MacOS Keychain
 
-**NOTE:** 1Password will require a local/machine-password or touch authentication.  The MacOS Keychain will require a sudo password unless you have configured passwordless-sudo)
-
-#### 1Password
-
-- Install 1Password and 1Password CLI
-
-  ```bash
-  brew install --cask 1password 1password-cli
-  ```
-
-Creating a vault and adding passwords or other secure items is beyond the scope of this document.  An example of the command used to retrieve the password is provided.
-
-#### MacOS Keychain
-
-- Create a generic password
-  
 ```bash
 security add-generic-password -s "SPOC VPN" -a "${USER}" -w
 ```
 
-- Retrieve a generic password
+### Retrieving your password from the MacOS Keychain
 
 ```bash
 security find-generic-password -s "SPOC VPN" -a "${USER}" -w
 ```
 
-## Modify your sshuttle command to ONLY send DNS requests for 'spoc.charterlab.com' to the sshuttle jumphost
+## Modify your sshuttle command to send DNS requests for ONLY 'spoc.charterlab.com' to the sshuttle jumphost.
+
+This will prevent your system from trying other nameservers for `*.spoc.charterlab.com` domains.
+
+*(Credit to Josh Hurtado for these instructions)*
 
 ### Create a domain-specific-DNS configuration for the SPOC Lab
 
-(Credit to Josh Hurtado for these instructions)
+Run the following commands as a priviliged / root user on the MacOS machine:
 
-- Run the following commands as a priviliged / root user on the MacOS machine:
-
-- Create the directory /etc/resolver
+#### Create the directory /etc/resolver
 
 ```bash
 sudo mkdir /etc/resolver
+sudo chmod 0774 /etc/resolver
 ```
 
-- Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com
+#### Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com
 
 ```bash
 sudo echo 'search spoc.charterlab.com spoc.local nameserver 172.22.73.19' > /etc/resolver/spoc.charterlab.com
 ```
 
-- Verify the new resolver for spoc.charterlab.com is present. *(You will have to scroll down a bit to find the correct one)*
+#### Verify the new resolver for spoc.charterlab.com is present with the following command
+
+  *(You will have to scroll down a bit to find the correct resolver.  An example is provided of the expected output)*
 
 ```bash
-❯ sudo scutil --dns
+sudo scutil --dns
+```
 
-DNS configuration
-...
+*Example Output:*
+
+```bash
 resolver #8
   domain   : spoc.charterlab.com
   search domain[0] : spoc.charterlab.com
@@ -139,8 +150,9 @@ resolver #8
 
 The `--dns` flag sends *all* requests to the **sshuttle jumphost**.  You will need to modify your `sshuttle` command so that *ONLY* requests for `spoc.charterlab.com` will be handled by the **sshuttle jumphost**.
 
-- ALLOW file command
-  
+
+#### Create the sshuttle **ALLOW** file by running the following command
+
 ```bash
 echo << EOF >> ~/.spoc.allow.txt
 44.0.0.0/8
@@ -184,8 +196,8 @@ echo << EOF >> ~/.spoc.allow.txt
 EOF
 ```
 
-- DENY File command
-  
+#### Create the sshuttle **DENY** file by running the following command
+
 ```bash
 echo << EOF >> ~/.spoc.deny.txt
 #corp
@@ -208,76 +220,141 @@ echo << EOF >> ~/.spoc.deny.txt
 EOF
 ```
 
-## Run the `sshuttle` command in your terminal
+## Running SSHuttle from your terminal
 
 ```bash
-sshuttle -v -r $USER@35.135.192.78:3022 -s ~/.spoc.allow.txt -X ~/.spoc.deny.txt --ns-hosts 172.22.73.19 --to-ns 172.22.73.19 
+sshuttle -v -r $USER@35.135.192.78:3022 -s ~/.spoc.allow.txt -X ~/.spoc.deny.txt --ns-hosts 172.22.73.19 --to-ns 172.22.73.19
 ```
 
-## Stop Here if you do not wish to create the [helper functiond](#create-the-function-that-we-will-use-to-start-and-stop-the-sshuttle-process) or use a [password-manager to securely inject credentials][def7]
+## SSHUTTLE HELPER FUNCTION - Easily start and stop  the `sshuttle` process in the background and securely inject your password from MacOS Keychain
 
-## Create the function that we will use to start and stop the `sshuttle` process
+**NOTE:** This simple function is just a wrapper for the `sshuttle` command that uses the CLI component of the MacOS Keychain to securely inject your SPOC password without having to manually enter them every time.
 
-**NOTE:** This very simple function is just a wrapper for the `sshuttle` command that uses the CLI component of either 1Password or the MacOS Keychain to securely inject your login credentials without having to manually enter them every time.
+The function also maintains a log of the current session for debugging, and will keep you connected to the SPOC network even if you are inactive for awhile.
 
-You can modify the function to invoke `sshuttle` with any arguments you wish.  And of course, you can still run the `sshuttle` command from the CLI as always.
+You can modify the function to invoke `sshuttle` with any arguments you wish.  And of course, you can still run the `sshuttle` command from the CLI.
+
+**ALSO NOTE:** The script has several basic checks to ensure you have all of the following:
+
+- The `SPOCUSER` variable set
+- The `sshpass` utility installed.
+- Your SPOC Password added to your MacOS Keychain (The script will prompt you to create it if not present).
+
+### Creating the Helper Script
 
 ```bash
-echo << EOF >> ~/.spoc.rc
+echo << EOF >> ~/.spoc.zsh
+#!/bin/bash
+
 spoctunnel () {
+
+# ADD TO PROFILE
+# Add the following uncommented line to your shell profile
+# [[ -f ~/.spoc.zsh ]] && source ~/.spoc.zsh
+
+
+colorRed="\033[31m"
+colorGreen="\033[32m"
+colorYellow="\033[33m"
+colorBlue="\033[34m"
+colorDefault="\033[0m"
+
 SSHUTTLESTATE=$1
 LOGFILE="$HOME/.sshuttle.log"
 
+# SET SPOCUSER TO YOUR SPOC ACCOUNT NAME
+SPOCUSER="ajanis"
+if [ -z "$SPOCUSER" ]; then
+    echo -e "
+    ${colorRed}No User set for SPOC SSH Connection defined.
+
+    Set the ${colorYellow}'SPOCUSER' ${colorRed}variable to your
+    ${colorYellow}SPOC Username ${colorRed}in the helper script
+
+    ${colorDefault}"
+    return
+    fi
+
+# INSTALL SSHPASS
+if [ ! -x $(which sshpass) ]; then
+    echo -e "${colorRed}
+
+    You need to install the 'sshpass' tool via Homebrew.
+    Assuming you have homebrew installed, run the following commands:
+
+    ${colorYellow}brew tap ajanis/custombrew
+    brew install ajanis/custombrew/sshpass
+
+    ${colorDefault}"
+    return
+fi
+
 # Password storage/retrieval mechanism
 # Support for 1password and MAC OS KeyChains
-# Example command for CLI access provided below 
+# Example command for CLI access provided below
 
 # 1Password CLI
-SPOCPASSWD_1PASSWD="$(op read op://Charter/charterlab-spoc/password)"
+#SPOCPASSWD_1PASSWD="$(op read op://Charter/charterlab-spoc/password)"
 
 # MAC OS Keychain
 SPOCPASSWD_KEYCHAIN="$(security find-generic-password -s 'SPOC VPN' -a ${USER} -w)"
+if [ -z $SPOCPASSWD_KEYCHAIN ]; then
+        echo -e "
 
-# Add the password management VAR of choice
-SPOCPASSWD="${SPOCPASSWD_1PASSWD}"
+        ${colorRed}No SPOC Password found in your MacOS Keychain!
 
-# SSHPASS=$(op read op://Charter/cddharterlab-spoc/password) \
+        ${colorGreen}Please enter your SPOC password when prompted to securely store it in your keychain
+
+        ${colorDefault}
+        "
+        security add-generic-password -a ${USER} -s 'SPOC VPN' -w
+            fi
+
+
+# Set SPOC password to MacOS Keychain Password result
+SPOCPASSWD="${SPOCPASSWD_KEYCHAIN}"
+
+# SSHuttle option menu
 case $SSHUTTLESTATE in
     start)
       if ! pgrep -f sshuttle; then
       echo > $LOGFILE
+      echo -e "${colorGreen}Starting SSHuttle connection to SPOC Jumphost
+      ${colorDefault}"
       SSHPASS=${SPOCPASSWD} \
-      bash -c 'sshpass -e sshuttle -v -r ajanis@35.135.192.78:3022 \
+      bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
       -s ~/.spoc.allow.txt \
       -X ~/.spoc.deny.txt \
       --ns-hosts 172.22.73.19 \
-      --to-ns 172.22.73.19' >>$LOGFILE 2>&1 &
+      --to-ns 172.22.73.19" >>$LOGFILE 2>&1 &
       fi
       ;;
     start_1pw)
       if ! pgrep -f sshuttle; then
       echo > $LOGFILE
-      SSHPASS=${SPOCPASSWD_KEYCHAIN} \
-      bash -c 'sshpass -e sshuttle -v -r ajanis@35.135.192.78:3022 \
+      SSHPASS=${SPOCPASSWD} \
+      bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
       -s ~/.spoc.allow.txt \
       -X ~/.spoc.deny.txt \
       --ns-hosts 172.22.73.19 \
-      --to-ns 172.22.73.19' >>$LOGFILE 2>&1 &
+      --to-ns 172.22.73.19" >>$LOGFILE 2>&1 &
       fi
       ;;
     start_keychain)
       if ! pgrep -f sshuttle; then
       echo > $LOGFILE
       SSHPASS=${SPOCPASSWD} \
-      bash -c 'sshpass -e sshuttle -v -r ajanis@35.135.192.78:3022 \
+      bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
       -s ~/.spoc.allow.txt \
       -X ~/.spoc.deny.txt \
       --ns-hosts 172.22.73.19 \
-      --to-ns 172.22.73.19' >>$LOGFILE 2>&1 &
+      --to-ns 172.22.73.19" >>$LOGFILE 2>&1 &
       fi
       ;;
     stop)
       if pgrep -f sshuttle; then
+      echo -e "${colorGreen}Killing SSHuttle connection to SPOC
+      ${colorDefault}"
       sudo pkill -f sshuttle >>$LOGFILE 2>&1
       fi
       ;;
@@ -289,19 +366,20 @@ case $SSHUTTLESTATE in
       ;;
     *)
       echo -e "$0 (start|stop|tail|cat|start_1pw|start_keychain)
-      start:      Starts sshuttle using -s ~/.spoc.allow.txt and -X ~/.spoc.deny.txt
-      stop:       Shuts down the sshuttle application
-      tail:       Tails the sshuttle process log file at ~/.sshuttle.log
-      cat:        Displays the entire file at ~/.sshuttle.log
-      start_1pw:      Starts sshuttle using -s ~/.spoc.allow.txt and -X ~/.spoc.deny.txt. Uses 1password CLI for password retrieval
-      start_keychain:      Starts sshuttle using -s ~/.spoc.allow.txt and -X ~/.spoc.deny.txt. Uses MacOS Keychain for password retrieval"
+      start:          | Starts sshuttle using -s ~/.spoc.allow.txt and -X ~/.spoc.deny.txt
+      stop:           | Shuts down the sshuttle application
+      tail:           | Tails the sshuttle process log file at ~/.sshuttle.log
+      cat:            | Displays the entire file at ~/.sshuttle.log
+      start_1pw:      | Same as start + Uses 1password CLI for password retrieval
+      start_keychain: | Same as start + Uses MacOS Keychain for password retrieval"
       ;;
 esac
 }
+
 EOF
 ```
 
-### Include ~/.spoc.rc you just created in your $SHELL profile / rcfile
+### Include ~/.spoc.rc Helper Script just created in your SHELL profile / rcfile
 
 This example uses .zshrc, but you can substitute the rcfile for your $SHELL of choice
 
@@ -311,7 +389,7 @@ cat << EOF >> .zshrc
 EOF
 ```
 
-## Run sshuttle helper
+## Runing the SSHuttle Helper Script
 
 - Open a new terminal window or reinstantiate your shell with `exec $SHELL`
 - Run `spoctunnel` to see help
@@ -332,7 +410,9 @@ spoctunnel (start|stop|tail|cat|start_1pw|start_keychain)
 
 ```bash
 ❯ spoctunnel start
-[4] 5073
+Starting SSHuttle connection to SPOC Jumphost
+
+[4] 83000
 ```
 
 - You will be prompted for your system/sudo password or fingerprint by 1Password or MacOS Keychain (*unless you have configured passwordless sudo*)
@@ -354,7 +434,7 @@ fw: >> pfctl -s all
 fw: >> pfctl -a sshuttle-12300 -f /dev/stdin
 fw: >> pfctl -E
 c : Accept TCP: 10.153.3.239:52481 -> 44.230.79.122:443.
- s: SW#4:44.230.79.122:443: uwrite: got EPIPE
+ s: SW 4:44.230.79.122:443: uwrite: got EPIPE
 c : Accept TCP: 10.153.3.239:52484 -> 44.230.79.122:443.
 c : Accept TCP: 10.153.3.239:52486 -> 172.22.73.99:443.
 c : Accept TCP: 10.153.3.239:52487 -> 172.22.73.99:443.
@@ -364,9 +444,11 @@ c : Accept TCP: 10.153.3.239:52487 -> 172.22.73.99:443.
 
 ```bash
 ❯ spoctunnel stop
-5073
-5152
-5155
-5156
-[4]  + 5073 terminated  SSHPASS=$(op read op://Charter/charterlab-spoc/password) bash -c  >> $LOGFILE
+83000
+83004
+83029
+83036
+Killing SSHuttle connection to SPOC
+
+[4]  + 83000 terminated  SSHPASS=${SPOCPASSWD} bash -c  >> $LOGFILE 2>&1
 ```
