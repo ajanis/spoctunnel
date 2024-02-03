@@ -20,7 +20,7 @@ SSHUTTLESTATE=$1
 LOGFILE="$HOME/.sshuttle.log"
 
 # SET SPOCUSER TO YOUR SPOC ACCOUNT NAME
-SPOCUSER="ajanis"
+SPOCUSER=""
 if [ -z "$SPOCUSER" ]; then
     echo -e "
     ${colorRed}No User set for SPOC SSH Connection defined.
