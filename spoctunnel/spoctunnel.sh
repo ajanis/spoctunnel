@@ -8,6 +8,7 @@ colorDefault="\033[0m"
 
 SSHUTTLESTATE=$1
 LOGFILE="$HOME/.sshuttle.log"
+VERSION="spoctunnel_version"
 
 function checkbrew () {
   if [ ! -x $(which brew) ]; then
@@ -65,7 +66,7 @@ if [ ! -x $(which sshuttle) ]; then
 
     ${colorYellow}
     brew install sshuttle
-    ${colorDefault}
+    ${colorDefault}s
     "
     brew install sshuttle
 fi
@@ -109,8 +110,8 @@ case $SSHUTTLESTATE in
       ${colorDefault}"
       SSHPASS=${SPOCPASSWD} \
       bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
-      -s ./spoc.allow.txt \
-      -X ./spoc.deny.txt \
+      -s /libexec/spoc.allow.txt \
+      -X /libexec/spoc.deny.txt \
       --ns-hosts 172.22.73.19 \
       --to-ns 172.22.73.19" >>"${LOGFILE}" 2>&1 &
       fi
@@ -130,9 +131,12 @@ case $SSHUTTLESTATE in
     cat)
       cat $LOGFILE
       ;;
+    version)
+      echo -e "${colorGreen}Spoctunnel version ${VERSION}${colorDefault}"
+      ;;
     *)
       echo -e "$0 (start|stop|tail|cat|start_1pw|start_keychain)
-      start:          | Starts sshuttle using -s ./spoc.allow.txt and -X ./spoc.deny.txt
+      start:          | Starts sshuttle using -s /libexec/spoc.allow.txt and -X /libexec/spoc.deny.txt
       stop:           | Shuts down the sshuttle application
       tail:           | Tails the sshuttle process log file at ~/.sshuttle.log
       cat:            | Displays the entire file at ~/.sshuttle.log"
