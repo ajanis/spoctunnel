@@ -65,10 +65,12 @@ case $spoctunnelOption in
 start)
   checkSpocuser
   checkKeychainpass
+  echo -e "${colorGreen}Starting SSHuttle connection to the SPOC Jumphost
+    ${colorDefault}"
   if ! pgrep -f sshuttle; then
     echo >"${spoctunnelLog}"
     echo -e "${colorGreen}Starting SSHuttle connection to the SPOC Jumphost
-      ${colorDefault}"
+    ${colorDefault}"
     SSHPASS=${spoctunnelPass} \
       bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
       -s HOMEBREW_ETC/spoc.allow.conf \
@@ -78,9 +80,11 @@ start)
   fi >>"${spoctunnelLog}" 2>&1 &
   ;;
 stop)
+  echo -e "${colorGreen}Killing SSHuttle connection to SPOC
+  ${colorDefault}"
   if pgrep -f sshuttle; then
     echo -e "${colorGreen}Killing SSHuttle connection to SPOC
-      ${colorDefault}"
+  ${colorDefault}"
     sudo pkill -f sshuttle
   fi >>"${spoctunnelLog}" 2>&1
   ;;

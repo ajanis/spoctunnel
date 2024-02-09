@@ -170,21 +170,15 @@ Starting SSHuttle connection to the SPOC Jumphost
 
 ```bash
 ❯ spoctunnel logs
+Starting SSHuttle connection to the SPOC Jumphost
+Starting sshuttle proxy (version 1.1.1).
+...
+c : Connecting to server...
+...
 c : Connected to server.
 fw: setting up.
-fw: >> pfctl -s Interfaces -i lo -v
-fw: >> pfctl -s all
-fw: >> pfctl -a sshuttle6-12300 -f /dev/stdin
-fw: >> pfctl -E
-fw: >> pfctl -s Interfaces -i lo -v
-fw: >> pfctl -s all
-fw: >> pfctl -a sshuttle-12300 -f /dev/stdin
-fw: >> pfctl -E
-c : Accept TCP: 10.153.3.239:52481 -> 44.230.79.122:443.
- s: SW 4:44.230.79.122:443: uwrite: got EPIPE
-c : Accept TCP: 10.153.3.239:52484 -> 44.230.79.122:443.
-c : Accept TCP: 10.153.3.239:52486 -> 172.22.73.99:443.
-c : Accept TCP: 10.153.3.239:52487 -> 172.22.73.99:443.
+...
+Waiting for data... (interrupt to abort)
 ```
 
 #### Run `spoctunnel stop` to shut down the `sshuttle` application
