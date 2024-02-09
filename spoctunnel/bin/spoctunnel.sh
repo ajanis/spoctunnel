@@ -72,8 +72,8 @@ start)
       ${colorDefault}"
     SSHPASS=${spoctunnelPass} \
       bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
-      -s /libexec/spoc.allow.txt \
-      -X /libexec/spoc.deny.txt \
+      -s HOMEBREW_PREFIX/libexec/spoc.allow.txt \
+      -X HOMEBREW_PREFIX/libexec/spoc.deny.txt \
       --ns-hosts 172.22.73.19 \
       --to-ns 172.22.73.19"
   fi >>"${spoctunnelLog}" 2>&1 &
@@ -93,7 +93,7 @@ version)
   ;;
 *)
   echo -e "$0 (start|stop|tail|cat|start_1pw|start_keychain)
-      start:          | Starts sshuttle using -s /libexec/spoc.allow.txt and -X /libexec/spoc.deny.txt
+      start:          | Starts sshuttle using -s HOMEBREW_PREFIX/libexec/spoc.allow.txt and -X HOMEBREW_PREFIX/libexec/spoc.deny.txt
       stop:           | Shuts down the sshuttle application
       tail:           | View the spoctunnel log ~/.spoctunnel.log
       "
