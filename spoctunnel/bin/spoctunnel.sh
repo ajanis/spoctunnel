@@ -60,20 +60,19 @@ function checkKeychainpass() {
   return
 }
 
-checkSpocuser
-checkKeychainpass
-
 # SSHuttle option menu
 case $spoctunnelOption in
 start)
+  checkSpocuser
+  checkKeychainpass
   if ! pgrep -f sshuttle; then
     echo >"${spoctunnelLog}"
     echo -e "${colorGreen}Starting SSHuttle connection to the SPOC Jumphost
       ${colorDefault}"
     SSHPASS=${spoctunnelPass} \
       bash -c "sshpass -e sshuttle -v -r $SPOCUSER@35.135.192.78:3022 \
-      -s HOMEBREW_PREFIX/libexec/spoc.allow.txt \
-      -X HOMEBREW_PREFIX/libexec/spoc.deny.txt \
+      -s HOMEBREW_PREFIX/etc/spoc.allow.conf \
+      -X HOMEBREW_PREFIX/etc/spoc.deny.conf \
       --ns-hosts 172.22.73.19 \
       --to-ns 172.22.73.19"
   fi >>"${spoctunnelLog}" 2>&1 &
@@ -92,10 +91,11 @@ version)
   echo -e "${colorGreen}Spoctunnel version ${spoctunnelVersion}${colorDefault}"
   ;;
 *)
-  echo -e "$0 (start|stop|tail|cat|start_1pw|start_keychain)
-      start:          | Starts sshuttle using -s HOMEBREW_PREFIX/libexec/spoc.allow.txt and -X HOMEBREW_PREFIX/libexec/spoc.deny.txt
+  echo -e "$0 (start|stop|logs|version)
+      start:          | Starts sshuttle using -s HOMEBREW_PREFIX/etc/spoc.allow.conf and -X HOMEBREW_PREFIX/etc/spoc.deny.conf
       stop:           | Shuts down the sshuttle application
       tail:           | View the spoctunnel log ~/.spoctunnel.log
+      version:        | Spoctunnel version
       "
   ;;
 esac
