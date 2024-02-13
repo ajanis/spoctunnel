@@ -67,17 +67,15 @@ root        ALL = (ALL) ALL
 
 ### Install Packages and configs
 
-- Homebrew `sshuttle` and `sshpass` Formulas.
-- Lab-specific `allow` and `deny` configuration for DNS resolution
-
-Run the following command to add the custom Tap and install the `spoctunnel` Formula
+1. Run the following command to add the custom Tap and install the `spoctunnel` Formula along with the `sshpass` and `sshuttle dependencie
 
 ```bash
 brew tap ajanis/custombrew
 brew install ajanis/custombrew/spoctunnel
 ```
 
-#### SSHPass
+
+- SSHPass Information
 
 This `sshpass` utility allows you to forward a password to the `ssh` command
 This example uses a local environment variable to securely pipe password information to `sshuttle`
@@ -87,27 +85,27 @@ This enables secure password injection that only requires your local user passwo
 
 **WARNING**: There are methods to invoke `sshpass` that **ARE NOT** secure.  As such, the utility is not available directly from homebrew.  I use a custom tap and formula hosted on my personal github account.
 
-#### SSHuttle
+- SSHuttle Information
 
 The `sshuttle` utility provides an easier-to-comprehend wrapper for SSH Tunnelling and managing route-specific DNS.
 
-### Custom DNS Resolver
+### Create Custom DNS Resolver
 
 We add a custom resolver file to ensure that all requests to `spoc.charterlab.com` are forwarded to the SPOC nameserver.
 
-- Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com
+1. Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com
 
 ```bash
 sudo echo 'search spoc.charterlab.com spoc.local nameserver 172.22.73.19' > /etc/resolver/spoc.charterlab.com
 ```
 
-- Verify the new resolver for spoc.charterlab.com is present with the following command
-
-(You will have to scroll down a bit to find the correct resolver.  An example is provided of the expected output)
+2. Verify the new resolver for spoc.charterlab.com is present with the following command
 
 ```bash
 sudo scutil --dns
 ```
+
+You will have to scroll down a bit to find the correct resolver.  An example is provided of the expected output
 
 *Example Output:*
 
@@ -124,19 +122,19 @@ resolver #8
 
 ## Runing SSHuttle Helper Function
 
-### SPOC Username
+### Export SPOC Username
 
-- You will need to provide a SPOCUSER environment variable.  This should be your SPOC Active-Directory Username
+1. You will need to provide a SPOCUSER environment variable.  This should be your SPOC Active-Directory Username
   - Add `export SPOCUSER="<SPOC Active Directory Username>"` to your shell profile.
   - If you do not have this variable set, the script will prompt you every time to provide your Spoc AD Username
 
-### SPOC Password
+### Store SPOC Password
 
-- On the first run, you will be prompted to add your SPOC Active-Directory Password to the Mac OS Keychain.
+1. On the first run, you will be prompted to add your SPOC Active-Directory Password to the Mac OS Keychain.
   - Enter and confirm your password when prompted.
   - Your password will be saved under the 'SPOC VPN' key.
 
-### Options
+### Script Options / Information / Examples
 
 #### Menu / Help / Version
 
