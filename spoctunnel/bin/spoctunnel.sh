@@ -98,8 +98,8 @@ version)
   echo -e "$0 (start|stop|logs|version)
       start:          | Starts sshuttle using -s HOMEBREW_ETC/spoc.allow.conf and -X HOMEBREW_ETC/spoc.deny.conf
       stop:           | Shuts down the sshuttle application
-      tail:           | View the spoctunnel log ~/.spoctunnel.log
-      version:        | Spoctunnel version
+      logs:           | View the spoctunnel log ~/.spoctunnel.log (This will open in tail mode.  Interrupt to scroll through the log)
+      version:        | Spoctunnel version (Display Version for install validation)
       "
   ;;
 esac
