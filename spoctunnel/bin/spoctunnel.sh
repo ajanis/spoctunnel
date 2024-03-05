@@ -6,7 +6,7 @@ logNotice="\033[34m"
 logDefault="\033[0m"
 spoctunnelLog="HOMEBREW_VARLOG/spoctunnel.log"
 spoctunnelOption=$1
-spoctunnelVersion="2.0.0"
+spoctunnelVersion="spoctunnel_version"
 
 function xc() {
   echo -e "$@" > >(tee -a ${spoctunnelLog})
@@ -108,7 +108,7 @@ version)
   xc "$0 (start|stop|logs|version)
       start:          | Starts sshuttle using -s HOMEBREW_ETC/spoc.allow.conf and -X HOMEBREW_ETC/spoc.deny.conf
       stop:           | Shuts down the sshuttle application
-      logs:           | View the spoctunnel log ${spoctunnelLog} (This will open in tail mode.  Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
+      logs:           | View the spoctunnel log HOMEBREW_VARLOG/spoctunnel.log (This will open in tail mode.  Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
       version:        | Spoctunnel version (Display Version for install validation)
       "
   ;;
