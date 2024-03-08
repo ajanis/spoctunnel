@@ -2,7 +2,6 @@
 logError="\033[31m"
 logSuccess="\033[32m"
 logInfo="\033[33m"
-logNotice="\033[34m"
 logDefault="\033[0m"
 spoctunnelLog="HOMEBREW_VARLOG/spoctunnel.log"
 spoctunnelOption=$1
@@ -34,8 +33,8 @@ function checkSpocuser() {
 
 # MAC OS Keychain
 function checkKeychainpass() {
-  spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a ${USER} -w)"
-  if [ -z $spoctunnelPass ]; then
+  spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
+  if [ -z "$spoctunnelPass" ]; then
     xc "${logError}No SPOC Password found in your MacOS Keychain!
 
     ${logInfo}Creating Keychain password entry now:
