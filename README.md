@@ -2,146 +2,109 @@
 # SPOCTunnel : Sshuttle easy-button for SPOC VPN
 
 - [SPOCTunnel : Sshuttle easy-button for SPOC VPN](#spoctunnel--sshuttle-easy-button-for-spoc-vpn)
-  - [Requirements](#requirements)
-    - [Set up Sudo privileges](#set-up-sudo-privileges)
-    - [Install Homebrew (MacOS) package manager](#install-homebrew-macos-package-manager)
-    - [Install Packages and configs](#install-packages-and-configs)
-      - [SSHPass](#sshpass)
-      - [SSHuttle](#sshuttle)
-    - [Custom DNS Resolver](#custom-dns-resolver)
-  - [Runing SSHuttle Helper Function](#runing-sshuttle-helper-function)
-    - [SPOC Username](#spoc-username)
-    - [SPOC Password](#spoc-password)
-    - [Options](#options)
-      - [Menu / Help / Version](#menu--help--version)
-      - [Run `spoctunnel stop` to shut down the `sshuttle` application](#run-spoctunnel-stop-to-shut-down-the-sshuttle-application)
-      - [Modifying files for network `allow` and `deny`](#modifying-files-for-network-allow-and-deny)
-      - [Allow](#allow)
-        - [Deny](#deny)
+  - [Installation and Configuration](#installation-and-configuration)
+    - [Set up sudo privileges (Optional)](#set-up-sudo-privileges-optional)
+      - [Example Sudo Configurations](#example-sudo-configurations)
+    - [Install Homebrew](#install-homebrew)
+    - [Install the `spoctunnel` helper](#install-the-spoctunnel-helper)
+    - [Run the post-install commands](#run-the-post-install-commands)
+  - [Using the `spoctunnel` helper script](#using-the-spoctunnel-helper-script)
+    - [Menu Options, Commands and Examples](#menu-options-commands-and-examples)
+    - [Start the `spoctunnel` helper](#start-the-spoctunnel-helper)
+    - [View connection logs](#view-connection-logs)
+    - [Stop the `spoctunnel` helper\`](#stop-the-spoctunnel-helper)
+  - [ADDITIONAL INFO](#additional-info)
+    - [Modifying files for DNS `allow` and `deny`](#modifying-files-for-dns-allow-and-deny)
+      - [Allow Config](#allow-config)
+      - [Deny Config](#deny-config)
+    - [SSHPass Information](#sshpass-information)
+    - [SSHuttle Information](#sshuttle-information)
 
 This document includes two main sections.
 
-1. The components needed to run `sshuttle` with domain-specific-dns (which forwards only requests for spoc.charterlab.com to the spoc-jumphost).
+1. Steps for installation, pre- and post- configuration, and how to use the `spoctunnel` helper.
 
-2. A helper script that that fetches your password securely from the MacOS Keychain - allowing for 1-step (fingerprint or local user) password authentication for the `sshuttle` command.  This is accomplished by using the `security` utility to read the appropriate password from the MacOS Keychain and securely pass it to the `sshuttle` utlity.
+2. Additional information about the helper script functionality and dependencies.
 
-## Requirements
+## Installation and Configuration
 
-You will need to set up the following:
+### Set up sudo privileges (Optional)
 
-- Sudo Privileges
-- Install Homebrew
-- Install spoctunnel from Homebrew which includes the dependencies:
-  - sshuttle
-  - sshpass
-- Run the spoctunnel command to add your password to the mac os keychain
-- Set up custom DNS Resolver for the `spoc.charterlab.com` domain
+*Proceed carefully.   Your local user should already have permission to run any command as the `root` user, but will be prompted for a password.  You may choose to disable this password prompt, but this means anyone with access to your unlocked Mac would be able to obtain root privileges.*
 
-### Set up Sudo privileges
+1. Open your terminal app and run `sudo visudo` (enter your password when prompted) to edit the `/etc/sudoers` file.
+2. Add the desired privileges for your user or group. (*The `visudo` program will validate your changes upon saving and will notify you of any errors.*)
 
-You will need to modify /etc/sudoers if you have not already so you can run commands as a privileged user.
+#### Example Sudo Configurations
 
-The configuration below is OPTIONAL:
+- Users in the `%admin` group may run any command as any user and will be prompted for their password. (**Default Setting**)
 
 ```bash
-
-# Cmnd alias specification
-Cmnd_Alias CUSTOM = /usr/local/bin/sshuttle, /usr/bin/pgrep, /usr/bin/pkill, /usr/sbin/visudo, /usr/local/bin/sshpass, /usr/local/bin/op
-
-# User specification
-    # root and users in group wheel can run anything on any machine as any user
-root        ALL = (ALL) ALL
-    # users in group admin can run any command from any machine as any user
-    # users from group admin can also run any command from the CUSTOM alias on any machine as any user without a password
-%admin      ALL = (ALL) ALL : ALL = (ALL) NOPASSWD: CUSTOM
+# User and Group specification
+%admin      ALL=(ALL) ALL
 ```
 
-### Install Homebrew (MacOS) package manager
+- Users in the `%admin` group may run any command as any user without a password. **(Modified Setting)**
 
-- [Homebrew Installation Instructions](https://docs.brew.sh/Installation)
-- Installation Script:
-
-```shell
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```bash
+# User and Group specification
+%admin    ALL=(ALL) NOPASSWD: ALL
 ```
 
-### Install Packages and configs
+### Install Homebrew
 
-1. Run the following command to add the custom Tap and install the `spoctunnel` Formula along with the `sshpass` and `sshuttle dependencie
+1. Follow the [Homebrew Installation Instructions](https://docs.brew.sh/Installation) to set up homebrew on your Mac.
+
+### Install the `spoctunnel` helper
+
+1. Run the following command in your terminal to set up the custom Tap `ajanis/custombrew`
+
+    *(Note: A Tap is like a repository)*
 
 ```bash
 brew tap ajanis/custombrew
+```
+
+2. Run the following command in your terminal to install the  `spoctunnel` Formula and any dependencies.
+
+```bash
 brew install ajanis/custombrew/spoctunnel
 ```
 
+### Run the post-install commands
 
-- SSHPass Information
+*(Note: These will be printed in your terminal after the Formula is installed)*
 
-This `sshpass` utility allows you to forward a password to the `ssh` command
-This example uses a local environment variable to securely pipe password information to `sshuttle`
+1. You will need to set your SPOC Active-Directory user.  This can be done by answering script prompt each time you run the script, or by adding the following to your shell profile (RECOMMENDED):
 
-In the `spoctunnel` utility, the `sshpass` environment variable is set using the MacOS Keychain CLI `security` tool.
-This enables secure password injection that only requires your local user password or fingerprint authentication.
+    ```> export SPOCUSER="<Your SPOC Active-Directory Username>"```
 
-**WARNING**: There are methods to invoke `sshpass` that **ARE NOT** secure.  As such, the utility is not available directly from homebrew.  I use a custom tap and formula hosted on my personal github account.
+2. Create a link to the custom resolver file installed by the Formula:
 
-- SSHuttle Information
+    ```> sudo ln -s $(brew --prefix)/etc/resolver /etc/resolver```
 
-The `sshuttle` utility provides an easier-to-comprehend wrapper for SSH Tunnelling and managing route-specific DNS.
+   - Run the following command and look for the resolver in the output *(Note: it will be near the end)*:
 
-### Create Custom DNS Resolver
+      ```> sudo scutil --dns```
 
-We add a custom resolver file to ensure that all requests to `spoc.charterlab.com` are forwarded to the SPOC nameserver.
+3. Create a link to the custom newsyslog log rotation rule installed by the Formula:
 
-1. Create the resolver file for SPOC at /etc/resolver/spoc.charterlab.com
+    ```> sudo ln -s $(brew --prefix)/etc/newsyslog.d/spoctunnel.conf /etc/newsyslog.d/spoctunnel.conf```
 
-```bash
-sudo echo 'search spoc.charterlab.com spoc.local nameserver 172.22.73.19' > /etc/resolver/spoc.charterlab.com
-```
+4. When you run the script for the first time, you will be prompted to add your SPOC AD Username to the Mac OS Keychain.
 
-2. Verify the new resolver for spoc.charterlab.com is present with the following command
+   This password will be retrieved automatically when you run spoctunnel in the future.
 
-```bash
-sudo scutil --dns
-```
+## Using the `spoctunnel` helper script
 
-You will have to scroll down a bit to find the correct resolver.  An example is provided of the expected output
+If you have followed the post-installation steps above, you should not need to do anything other than set your sPOC AD Password the first time you start the helper.
 
-*Example Output:*
-
-```bash
-resolver #8
-  domain   : spoc.charterlab.com
-  search domain[0] : spoc.charterlab.com
-  search domain[1] : spoc.local
-  search domain[2] : nameserver
-  search domain[3] : 172.22.73.19
-  flags    : Request A records, Request AAAA records
-  reach    : 0x00000000 (Not Reachable)
-```
-
-## Runing SSHuttle Helper Function
-
-### Export SPOC Username
-
-1. You will need to provide a SPOCUSER environment variable.  This should be your SPOC Active-Directory Username
-  - Add `export SPOCUSER="<SPOC Active Directory Username>"` to your shell profile.
-  - If you do not have this variable set, the script will prompt you every time to provide your Spoc AD Username
-
-### Store SPOC Password
-
-1. On the first run, you will be prompted to add your SPOC Active-Directory Password to the Mac OS Keychain.
-  - Enter and confirm your password when prompted.
-  - Your password will be saved under the 'SPOC VPN' key.
-
-### Script Options / Information / Examples
-
-#### Menu / Help / Version
+### Menu Options, Commands and Examples
 
 - Open a new terminal window
 - Run `spoctunnel` with no args to view help.
 
-- The `spoctunnel version command is just there to validate installation
+- The `spoctunnel version` command is just there to validate installation
 
 ```bash
 ❯ spoctunnel
@@ -154,43 +117,50 @@ spoctunnel (start|stop|tail|cat|start_1pw|start_keychain)
 
 ```
 
-- Start the process
+### Start the `spoctunnel` helper
+
 - You will be prompted for your system/sudo password or fingerprint for the MacOS Keychain (*unless you have configured passwordless sudo*)
+- You will be prompted to enter your sPOC AD Password the first time you run the `spoctunnel` helepr
 
 ```bash
 ❯ spoctunnel start
-Starting SSHuttle connection to the SPOC Jumphost
+SSHuttle connection start : OK
 ```
 
-- View Logs
-  - The `spoctunnel logs` command will open the logfile in 'Follow' mode. (Like `tail -f`).
-  - If you interrupt the follow process, the log will switch to a paginated view (Like `less` or `vim`)
+### View connection logs
+
+- The `spoctunnel logs` command will open the logfile in 'Follow' mode. (Like `tail -f`).
+- If you interrupt the follow process, the log will switch to a paginated view (Like `less` or`vim`)
 
 ```bash
 ❯ spoctunnel logs
-Starting SSHuttle connection to the SPOC Jumphost
-Starting sshuttle proxy (version 1.1.1).
-...
-c : Connecting to server...
+SSHuttle connection start : OK
+Starting sshuttle proxy (version 1.1.2).
+c : Starting firewall manager with command: ['/usr/bin/sudo', '-p', '[local sudo] Password: ', '/usr/bin/env', 'PYTHONPATH=/usr/local/Cellar/sshuttle/1.1.2/libexec/lib/python3.12/site-packages', '/usr/local/Cellar
+/sshuttle/1.1.2/libexec/bin/python', '/usr/local/bin/sshuttle', '-v', '--method', 'auto', '--firewall']
 ...
 c : Connected to server.
-fw: setting up.
 ...
+fw: >> pfctl -E
 Waiting for data... (interrupt to abort)
 ```
 
-#### Run `spoctunnel stop` to shut down the `sshuttle` application
+### Stop the `spoctunnel` helper`
 
 ```bash
 ❯ spoctunnel stop
 Killing SSHuttle connection to SPOC
 ```
 
-#### Modifying files for network `allow` and `deny`
+## ADDITIONAL INFO
 
-The `--dns` flag sends *all* requests to the **sshuttle jumphost**.  You will need to modify your `sshuttle` command so that *ONLY* requests for `spoc.charterlab.com` will be handled by the **sshuttle jumphost**.
+### Modifying files for DNS `allow` and `deny`
 
-#### Allow
+The `--dns` flag sends *all* DNS requests to the **sPOC Jumphost**.  The `allow.conf` file contains IP addresses that should be sent through the sPOC Jumphost.  The `deny.conf` file contains IP addresses that should be sent to your system-defined (probably corporate) nameserver.
+
+If you need to edit them, the files are located at $(brew --prefix)/spoctunnel/allow.txt and $(brew --prefix)/spoctunnel/deny.txt
+
+#### Allow Config
 
 ```bash
 44.0.0.0/8
@@ -234,7 +204,7 @@ The `--dns` flag sends *all* requests to the **sshuttle jumphost**.  You will ne
 EOF
 ```
 
-##### Deny
+#### Deny Config
 
 ```bash
 #corp
@@ -256,3 +226,17 @@ EOF
 #2605:1c00:50f2:280b:172:23:62:222/128
 EOF
 ```
+
+### SSHPass Information
+
+This `sshpass` utility allows you to forward a password to the `ssh` command
+This example uses a local environment variable to securely pipe password information to `sshuttle`
+
+In the `spoctunnel` utility, the `sshpass` environment variable is set using the MacOS Keychain CLI `security` tool.
+This enables secure password injection that only requires your local user password or fingerprint authentication.
+
+**WARNING**: There are methods to invoke `sshpass` that **ARE NOT** secure.  As such, the utility is not available directly from homebrew.  I use a custom tap and formula hosted on my personal github account.
+
+### SSHuttle Information
+
+The `sshuttle` utility provides an easier-to-comprehend wrapper for SSH Tunnelling and managing route-specific DNS.
