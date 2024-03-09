@@ -1,7 +1,10 @@
 
-# SPOCTunnel : Sshuttle easy-button for SPOC VPN
+# sPOCtunnel: sPOC Lab VPN Easy-Button
 
-- [SPOCTunnel : Sshuttle easy-button for SPOC VPN](#spoctunnel--sshuttle-easy-button-for-spoc-vpn)
+A Homebrew package to streamline setting up the utilities, configs and commands needed to access the sPOC Lab
+
+- [sPOCtunnel: sPOC Lab VPN Easy-Button](#spoctunnel-spoc-lab-vpn-easy-button)
+  - [Features](#features)
   - [Installation and Configuration](#installation-and-configuration)
     - [Set up sudo privileges (Optional)](#set-up-sudo-privileges-optional)
       - [Example Sudo Configurations](#example-sudo-configurations)
@@ -20,11 +23,31 @@
     - [SSHPass Information](#sshpass-information)
     - [SSHuttle Information](#sshuttle-information)
 
-This document includes two main sections.
+## Features
 
-1. Steps for installation, pre- and post- configuration, and how to use the `spoctunnel` helper.
+- Start and Stop the sPOC VPN Tunnel with simple `spoctunnel start|stop` commands.
 
-2. Additional information about the helper script functionality and dependencies.
+- Automatically (and securely) passes your sPOC Active Directory Username and Password to the `sshuttle` service.
+
+  - Authenticate with just your fingerprint or machine password.
+
+  - Uses the MacOS Keychain to securely store and retrieve your sPOC Active Directory password
+
+  - No clear-text password is present in your terminal, process queue, procfs or shell history
+
+- Installs all configs required for `spoc.charterlab.com` DNS resolver and split-DNS management
+
+  - Creates custom `/etc/resolver` file for `spoc.charterlab.com` nameserver
+
+  - Installs `allow` list of IP addresses that will be resolved by the sPOC Lab nameserver
+
+  - Installs `deny` file for IPs that will be resolved by the Corporate Nameserver
+
+- View / Debug your connection with `spoctunnel logs`
+
+  - Keep the `sshuttle` in the backround, but still access your connection logs
+
+  - Log files are rotated, compressed and removed regularly by the MacOS `newsyslog` service
 
 ## Installation and Configuration
 
@@ -103,15 +126,14 @@ If you have followed the post-installation steps above, you should not need to d
 
 - Open a new terminal window
 - Run `spoctunnel` with no args to view help.
-
-- The `spoctunnel version` command is just there to validate installation
+- The `spoctunnel version` command is used to validate installation
 
 ```bash
 ❯ spoctunnel
-spoctunnel (start|stop|tail|cat|start_1pw|start_keychain)
-      start:          | Starts spoctunnel
-      stop:           | Stops spoctunnel
-      logs:           | Tails the spoctunnel process log file at ~/.spoctunnel.
+spoctunnel (start|stop|logs|version)
+      start:          | Start the sPOCtunnel
+      stop:           | Stop sPOCtunnel
+      logs:           | View the sPOCtunnel connection logs
       version:        | Displays the homebrew formula version
 
 
