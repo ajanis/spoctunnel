@@ -13,43 +13,46 @@ function xc() {
 
 function checkSpocuser() {
   if [ -z "$SPOCUSER" ]; then
-    xc "${logError}No User set for SPOC SSH Connection defined.
-    Set the 'SPOCUSER' variable to your SPOC Active-Directory Username in your $SHELL profile.
-
-    ${logInfo} We will prompt you for your SPOC user now...
-    ${logDefault}
-	  "
+    echo -e "${logError}
+  No User set for SPOC SSH Connection defined.
+  Set the 'SPOCUSER' variable to your SPOC Active-Directory Username in your $SHELL profile.
+  ${logInfo}
+  We will prompt you for your SPOC user now...
+  ${logDefault}
+  "
 
     read -p "Enter SPOC Active-Directory User: " SPOCSETUSER
     export SPOCUSER="SPOCSETUSER"
-    xc "${logInfo}Add the following to your $SHELL profile:
-    export SPOCUSER=\"${SPOCSETUSER}\"
-    ${logDefault}
-	  "
+    echo -e "${logInfo}
+  Add the following to your $SHELL profile:
+  export SPOCUSER=\"${SPOCSETUSER}\"
+  ${logDefault}
+  "
 
   fi
   return
 }
-
 # MAC OS Keychain
 function checkKeychainpass() {
   spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
   if [ -z "$spoctunnelPass" ]; then
-    xc "${logError}No SPOC Password found in your MacOS Keychain!
-
-    ${logInfo}Creating Keychain password entry now:
+    echo -e "${logError}
+    No SPOC Password found in your MacOS Keychain!
+    ${logInfo}
+    Creating Keychain password entry now:
     Please enter your SPOC password when prompted to securely store it in your keychain
     ${logDefault}
     "
-
     if security add-generic-password -a "${USER}" -s 'SPOC VPN' -w; then
-      xc "${logSuccess}Password Stored in Keychain...
-      ${logDefault}
-      "
+      echo -e "${logSuccess}
+    Password Stored in Keychain...
+    ${logDefault}
+    "
     else
-      xc "${logError}Error: Password creation failed
-      ${logDefault}
-      "
+      echo -e "${logError}
+    Error: Password creation failed
+    ${logDefault}
+    "
     fi
   fi
   return
