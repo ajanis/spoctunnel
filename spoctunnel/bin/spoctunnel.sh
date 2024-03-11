@@ -6,7 +6,7 @@ logNotice="\033[34m"
 logDefault="\033[0m"
 spoctunnelLog="HOMEBREW_VARLOG/spoctunnel.log"
 spoctunnelOption=$1
-spoctunnelVersion="3.0.1"
+spoctunnelVersion="SPOCTUNNEL_VERSION"
 
 function xc() {
   echo -e "$@" > >(tee -a ${spoctunnelLog})
