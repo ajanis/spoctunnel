@@ -1,1 +1,1 @@
-search spoc.charterlab.com spoc.local nameserver 172.22.73.19
+search spoc.charterlab.com spoc.local nameserver 2605:1c00:50f2:2800:172:22:73:19 172.22.73.19
