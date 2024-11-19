@@ -4,12 +4,12 @@ logSuccess="\033[32m"
 logInfo="\033[33m"
 logNotice="\033[34m"
 logDefault="\033[0m"
-spoctunnelLog="/usr/local/var/log/spoctunnel/spoctunnel.log"
+spoctunnelLog="HOMEBREW_VARLOG/spoctunnel.log"
 spoctunnelOption=$1
-spoctunnelVersion="7.1.2"
+spoctunnelVersion="SPOCTUNNEL_VERSION"
 spoctunnelIP=${2:-"main-jump"}
 spoctunnelPort=${3}
-spoctunnelPIDfile="/usr/local/var/run/sshuttle.pid"
+spoctunnelPIDfile="HOMEBREW_VARRUN/sshuttle.pid"
 function xc() {
   echo -e "$@" > >(tee -a ${spoctunnelLog})
 }
@@ -76,8 +76,8 @@ function checkRunning() {
 #       SSHPASS=${spoctunnelPass}
 #       (sshpass -e sshuttle -v \
 #       -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort"\
-#       -s /usr/local/etc/spoctunnel/spoc.allow.conf \
-#       -X /usr/local/etc/spoctunnel/spoc.deny.conf \
+#       -s HOMEBREW_ETC/spoc.allow.conf \
+#       -X HOMEBREW_ETC/spoc.deny.conf \
 #       --ns-hosts 172.22.73.19 \
 #       --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 &) || (echo "failed" && exit 1)
 # }
@@ -86,8 +86,8 @@ function startSshuttle() {
       export SSHPASS=${spoctunnelPass}
       sshpass -e sshuttle -v \
       -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort" \
-      -s /usr/local/etc/spoctunnel/spoc.allow.conf \
-      -X /usr/local/etc/spoctunnel/spoc.deny.conf \
+      -s HOMEBREW_ETC/spoc.allow.conf \
+      -X HOMEBREW_ETC/spoc.deny.conf \
       --ns-hosts 172.22.73.19 \
       --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 & pid=$!
       echo $pid > ${spoctunnelPIDfile}
@@ -180,9 +180,9 @@ postinstall)
   ;;
 *)
   xc "$0 (start|stop|logs|version) <ip>
-      start:          | Starts sshuttle using -s /usr/local/etc/spoctunnel/spoc.allow.conf and -X /usr/local/etc/spoctunnel/spoc.deny.conf
+      start:          | Starts sshuttle using -s HOMEBREW_ETC/spoc.allow.conf and -X HOMEBREW_ETC/spoc.deny.conf
       stop:           | Shuts down the sshuttle application
-      logs:           | View the spoctunnel log /usr/local/var/log/spoctunnel/spoctunnel.log (This will open in tail mode)
+      logs:           | View the spoctunnel log HOMEBREW_VARLOG/spoctunnel.log (This will open in tail mode)
                         Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
       version:        | Spoctunnel version (Display Version for install validation)
       "
