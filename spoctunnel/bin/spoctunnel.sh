@@ -9,7 +9,7 @@ spoctunnelOption=$1
 spoctunnelVersion="SPOCTUNNEL_VERSION"
 spoctunnelIP=${2:-"main-jump"}
 spoctunnelPort=${3}
-spoctunnelPIDfile="HOMEBREW_VARRUN/sshuttle.pid"
+spoctunnelPIDfile="HOMEBREW_VARRUN/spoctunnel.pid"
 function xc() {
   echo -e "$@" > >(tee -a ${spoctunnelLog})
 }
