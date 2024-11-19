@@ -1,44 +1,55 @@
-#!/bin/bash
+#!/bin/bash -x
 logError="\033[31m"
 logSuccess="\033[32m"
 logInfo="\033[33m"
 logNotice="\033[34m"
 logDefault="\033[0m"
-spoctunnelLog="HOMEBREW_VARLOG/spoctunnel.log"
+spoctunnelLog="/usr/local/var/log/spoctunnel/spoctunnel.log"
 spoctunnelOption=$1
-spoctunnelVersion="SPOCTUNNEL_VERSION"
-
+spoctunnelVersion="7.1.2"
+spoctunnelIP=${2:-"main-jump"}
+spoctunnelPort=${3}
+spoctunnelPIDfile="/usr/local/var/run/sshuttle.pid"
 function xc() {
   echo -e "$@" > >(tee -a ${spoctunnelLog})
 }
 function checkSpocuser() {
   if [ -z "$SPOCUSER" ]; then
-    echo -e "${logError}
-    No User set for SPOC SSH Connection defined.
-    Set the 'SPOCUSER' variable to your SPOC Active-Directory Username in your $SHELL profile.
+    xc "${logError}
+    No SSH User defined for SPOC SSH Connection.
     ${logInfo}
     We will prompt you for your SPOC user now...
     ${logDefault}"
+    sleep 1
     read -rp "Enter SPOC Active-Directory User: " SPOCSETUSER
-    export SPOCUSER="SPOCSETUSER"
-    echo -e "${logInfo}
-    Add the following to your $([[ ''$SHELL'' == '/bin/zsh' ]] && echo '.zshrc') $([[ ''$SHELL'' == '/bin/bash' ]] && echo '.bashrc') profile :
-    ${logNotice}
-    export SPOCUSER=\"${SPOCSETUSER}\"
-    ${logDefault}"
-  fi
+    export SPOCUSER="${SPOCSETUSER}"
+    xc "${logInfo}Detected $SHELL as your currrent shell."
+    export RCFILE="${HOME}/.$(basename "${SHELL}")rc"
+    if ! grep -E -q "^export SPOCUSER=[\'\"]${SPOCUSER}[\'\"]" "${RCFILE}"; then
+      xc "No 'SPOCUSER' export found in ${RCFILE}
+      ${logDefault}"
+      sleep 1
+      read -rp "Would you like to add ''export SPOCUSER=${SPOCUSER}'' to ${RCFILE}? : [y/n]" SPOCEXPORT
+      if [[ "${SPOCEXPORT}" =~ ([y|Y](:?[e|E][S|s])?) ]]; then
+        sed -i '' -e '$a\
+export SPOCUSER="'"${SPOCUSER}"'"
+        ' "${RCFILE}"
+        xc "${logSuccess}Added ${logDefault}export SPOCUSER=\"${SPOCUSER}\"${logSuccess} to ${RCFILE}"
+        fi
+      fi
+    fi
   return
 }
 # MAC OS Keychain
 function checkKeychainpass() {
   spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
   if [ -z "$spoctunnelPass" ]; then
-    echo -e "${logError}
-    No SPOC Password found in your MacOS Keychain!
+    xc "${logError}No SPOC Password found in your MacOS Keychain!
     ${logInfo}
     Creating Keychain password entry now:
     Please enter your SPOC password when prompted to securely store it in your keychain
     ${logDefault}"
+    sleep 1
     if security add-generic-password -a "${USER}" -s 'SPOC VPN' -w; then
       echo -e "${logSuccess}
       Success: Password Stored in Keychain...
@@ -51,48 +62,91 @@ function checkKeychainpass() {
   fi
   return
 }
+function checkRunning() {
+  if pgrep -q -F ${spoctunnelPIDfile}; then
+    xc "${logInfo}Info: SShuttle already running${logDefault}"
+    exit 0
+  elif pgrep -q -lf sshuttle; then
+    xc "${logError}Error: Rogue SSHuttle process found, killing all found. ${logDefault}"
+    pkill -lf sshuttle
+  fi
+}
+
+# function startSshuttle() {
+#       SSHPASS=${spoctunnelPass}
+#       (sshpass -e sshuttle -v \
+#       -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort"\
+#       -s /usr/local/etc/spoctunnel/spoc.allow.conf \
+#       -X /usr/local/etc/spoctunnel/spoc.deny.conf \
+#       --ns-hosts 172.22.73.19 \
+#       --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 &) || (echo "failed" && exit 1)
+# }
 function startSshuttle() {
-  if ! pgrep -f sshuttle; then
-    SSHPASS=${spoctunnelPass} \
-      bash -c "sshpass -e sshuttle -v \
-      -r $SPOCUSER@35.135.192.78:3022 \
-      -s HOMEBREW_ETC/spoc.allow.conf \
-      -X HOMEBREW_ETC/spoc.deny.conf \
+      # trap "rm -f ${spoctunnelPIDfile}" ERR
+      export SSHPASS=${spoctunnelPass}
+      sshpass -e sshuttle -v \
+      -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort" \
+      -s /usr/local/etc/spoctunnel/spoc.allow.conf \
+      -X /usr/local/etc/spoctunnel/spoc.deny.conf \
       --ns-hosts 172.22.73.19 \
-      --to-ns 172.22.73.19"
-  fi >>${spoctunnelLog} 2>&1 &
+      --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 & pid=$!
+      echo $pid > ${spoctunnelPIDfile}
+      sleep 10
+      if ! kill -0 $pid; then
+        xc "${logError}
+        Failed: SSHuttle process failed with code: $?"
+        exit 1
+        else
+        xc "${logSuccess}
+        OK: SSHuttle process started successfully"
+        exit 0
+        fi
 }
 
 function stopSshuttle() {
-  if pgrep -f sshuttle; then
-    sudo pkill -f sshuttle
-  fi >>${spoctunnelLog} 2>&1 &
-
+  if pgrep -q -F ${spoctunnelPIDfile}; then
+    xc "${logInfo}Killing $(pgrep -lf -F ${spoctunnelPIDfile})"
+    if pkill -F ${spoctunnelPIDfile}; then
+      xc "${logSuccess}OK: SSHuttle stopped${logDefault}"
+      exit 0
+      fi
+    else
+    xc "${logInfo}Info: SSHuttle not running"
+    exit 0
+    fi
 }
 
-function logStatus() {
-  if [[ $? == "0" ]]; then
-    xc "${logSuccess}SSHuttle connection ${spoctunnelOption} : OK"
-  fi
-  #else
-  if [[ $? == "1" ]]; then
-    xc "${logError}!!ERROR!!!"
-    xc "${LOG_WARN_COLOR}SSHuttle connection ${spoctunnelOption} : FAIL"
-    xc "${logInfo}Check logs with 'spoctunnel logs' ..."
-  fi
-}
+# function stopSshuttle() {
+#   if pgrep -f sshuttle; then
+#     sudo pkill -f sshuttle
+#   fi >>${spoctunnelLog} 2>&1 &
+
+# }
+
+# function logStatus() {
+#   if [[ $? == "0" ]]; then
+#     xc "${logSuccess}SSHuttle connection ${spoctunnelOption} : OK"
+#   fi
+#   #else
+#   if [[ $? == "1" ]]; then
+#     xc "${logError}!!ERROR!!!"
+#     xc "${LOG_WARN_COLOR}SSHuttle connection ${spoctunnelOption} : FAIL"
+#     xc "${logInfo}Check logs with 'spoctunnel logs' ..."
+#   fi
+# }
 
 # SSHuttle option menu
 case $spoctunnelOption in
 start)
+  checkRunning
   checkSpocuser
   checkKeychainpass
   startSshuttle
-  logStatus
+  # logStatus
   ;;
 stop)
   stopSshuttle
-  logStatus
+  # logStatus
   ;;
 logs)
   less +F "${spoctunnelLog}"
@@ -125,10 +179,10 @@ postinstall)
   "
   ;;
 *)
-  xc "$0 (start|stop|logs|version)
-      start:          | Starts sshuttle using -s HOMEBREW_ETC/spoc.allow.conf and -X HOMEBREW_ETC/spoc.deny.conf
+  xc "$0 (start|stop|logs|version) <ip>
+      start:          | Starts sshuttle using -s /usr/local/etc/spoctunnel/spoc.allow.conf and -X /usr/local/etc/spoctunnel/spoc.deny.conf
       stop:           | Shuts down the sshuttle application
-      logs:           | View the spoctunnel log HOMEBREW_VARLOG/spoctunnel.log (This will open in tail mode)
+      logs:           | View the spoctunnel log /usr/local/var/log/spoctunnel/spoctunnel.log (This will open in tail mode)
                         Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
       version:        | Spoctunnel version (Display Version for install validation)
       "
