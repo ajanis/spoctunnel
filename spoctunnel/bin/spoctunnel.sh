@@ -39,12 +39,12 @@ function checkSpocuser() {
   if [ -z "$SPOCUSER" ]; then
     xc "${Lo}
     Warning: No SSH User defined for SPOC SSH Connection. 
-    Please enter your SPOC AD user when prompted.
+    Please enter your SPOC LDAP user when prompted.
     ${Lb}
-    Note: This should be your CAAS AD User.
+    Note: This should be your CAAS LDAP User.
     ${Lw}"
     sleep 1
-    read -rp "Enter SPOC Active-Directory User: " SPOCSETUSER
+    read -rp "Enter SPOC LDAP User: " SPOCSETUSER
     export SPOCUSER="${SPOCSETUSER}"
     xc "${Lg}
     OK: SPOC SSH user set and exported for current session.
@@ -185,10 +185,10 @@ version)
   ;;
 postinstall)
   echo -e "${Ly}
-  1) You will need to set your SPOC Active-Directorfy user.
+  1) You will need to set your SPOC LDAP user.
      This can be done by answering script prompt each time you run the script, or by adding the following to your shell profile (RECOMMENDED):
      ${Lb}
-     > export SPOCUSER=\"<Your SPOC Active-Directory Username>\"
+     > export SPOCUSER=\"<Your SPOC LDAP Username>\"
   ${Ly}
   2) Create a link to the custom resolver file installed by the Formula:
      ${Lb}
@@ -202,7 +202,7 @@ postinstall)
      ${Lb}
      > sudo ln -s $(brew --prefix)/etc/newsyslog.d/spoctunnel.conf /etc/newsyslog.d/spoctunnel.conf
   ${Ly}
-  4) When you run the script for the first time, you will be prompted to add your SPOC AD Username to the Mac OS Keychain.
+  4) When you run the script for the first time, you will be prompted to add your SPOC LDAP password to the Mac OS Keychain.
      This password will be retrieved automatically when you run spoctunnel in the future.
   ${Lw}
   "
