@@ -1,57 +1,69 @@
 #!/bin/bash
-Lr="\033[31m"
-Lg="\033[32m"
-Ly="\033[33m"
-Lb="\033[34m"
-Lw="\033[0m"
+
+# Color vars for message output
+Lr="\033[38;5;9m"
+Lg="\033[38;5;35m"
+Ly="\033[38;5;184m"
+Lb="\033[38;5;39m"
+Lw="\033[38;5;15m"
+Lo="\033[38;5;208m"
+
+# Input parameters for script option and optional jump-server HOSTNAME/IP and SSH 
 spoctunnelOption=$1
 spoctunnelIP=${2:-"spoc-jump"}
 spoctunnelPort=${3}
 spoctunnelVersion='SPOCTUNNEL_VERSION'
+
+# Override log locations for testing
+override=False
+
+if $override; then
+#overrides
+homebrew_etc='/usr/local/etc/spoctunnel'
+homebrew_varlog='/usr/local/var/log/spoctunnel'
+homebrew_varrun='/usr/local/var/run/spoctunnel'
+else
 homebrew_etc='HOMEBREW_ETC'
 homebrew_varlog='HOMEBREW_VARLOG'
 homebrew_varrun='HOMEBREW_VARRUN'
+fi
 
-#overrides
-# homebrew_etc='/usr/local/etc'
-# homebrew_varlog='/usr/local/var/log'
-# homebrew_varrun='/usr/local/var/run'
-
-spoctunnelLog="${homebrew_varlog}/spoctunnel/spoctunnel.log"
-spoctunnelPIDfile="${homebrew_varrun}/spoctunnel/spoctunnel.pid"
+spoctunnelLog="${homebrew_varlog}/spoctunnel.log"
+spoctunnelPIDfile="${homebrew_varrun}/spoctunnel.pid"
 
 function xc() {
   echo -e "$@" > >(tee -a "${spoctunnelLog}")
 }
+
 function checkSpocuser() {
   if [ -z "$SPOCUSER" ]; then
-    xc "${Lr}
-    No SSH User defined for SPOC SSH Connection.
-    ${Ly}
-    We will prompt you for your SPOC user now...
+    xc "${Lo}
+    Warning: No SSH User defined for SPOC SSH Connection. 
+    Please enter your SPOC AD user when prompted.
+    ${Lb}
+    Note: This should be your CAAS AD User.
     ${Lw}"
     sleep 1
     read -rp "Enter SPOC Active-Directory User: " SPOCSETUSER
     export SPOCUSER="${SPOCSETUSER}"
     xc "${Ly}
-    Detected $SHELL as your currrent shell...
+    Info: Detected $SHELL as your currrent shell...
     ${Lw}"
-    export RCFILE="${HOME}/.$(basename "${SHELL}")rc"
+    RCFILE="${HOME}/.$(basename "${SHELL}")rc"
     if ! grep -E -q "^export SPOCUSER=[\'\"]${SPOCUSER}[\'\"]" "${RCFILE}"; then
-      xc "${Lr}
-      No 'SPOCUSER' export found in ${RCFILE}
-      ${Ly}
-      We can add ${Lw}export SPOCUSER=\"${SPOCUSER}\"${Ly} to ${RCFILE}
+      xc "${Lo}
+      Warning: No 'SPOCUSER' export found in ${RCFILE}!  
+      We can add ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lo} to ${RCFILE} in the following step.
       ${Lw}"
       sleep 1
-      read -rp "Would you like to add ''export SPOCUSER=${SPOCUSER}'' to ${RCFILE}? : [y/n]" SPOCEXPORT
+      read -rp "Would you like to add 'export SPOCUSER=${SPOCUSER}' to ${RCFILE}? : [y/n]" SPOCEXPORT
       if [[ "${SPOCEXPORT}" =~ ([y|Y](:?[e|E][S|s])?) ]]; then
         sed -i '' -e '$a\
 export SPOCUSER="'"${SPOCUSER}"'"
         ' "${RCFILE}"
         xc "${Lg}
-        Added ${Lw}export SPOCUSER=\"${SPOCUSER}\"${Lg} to ${RCFILE}
-        ${Lw}"
+        OK: Added ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lg} to ${RCFILE}
+        ${Lo}"
         fi
       fi
     fi
@@ -61,15 +73,16 @@ export SPOCUSER="'"${SPOCUSER}"'"
 function checkKeychainpass() {
   spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
   if [ -z "$spoctunnelPass" ]; then
-    xc "${Lr}No SPOC Password found in your MacOS Keychain!
-    ${Ly}
-    Creating Keychain password entry for 'SPOC VPN'...
-    Please enter your SPOC password when prompted to securely store it in the MacOS keychain...
+    xc "${Lo}
+    Warning: No SPOC Password found in your MacOS Keychain!
+    Please enter your SPOC LDAP password when prompted.
+    ${Lb}
+    Note: Your password will be securely stored in the MacOS keychain as 'SPOC VPN' for future use.
     ${Lw}"
     sleep 1
     if security add-generic-password -a "${USER}" -s 'SPOC VPN' -w; then
       xc "${Lg}
-      Success: Password Stored in Keychain...
+      OK: Password Stored in Keychain...
       ${Lw}"
       spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
     else
@@ -80,26 +93,55 @@ function checkKeychainpass() {
   fi
   return
 }
+
+function stopSshuttle() {
+  if pgrep -q -F ${spoctunnelPIDfile}; then
+    xc "${Ly}
+    Info: Killing $(pgrep -lf -F ${spoctunnelPIDfile})
+    ${Lw}"
+    if pkill -F ${spoctunnelPIDfile}; then
+      xc "${Lg}
+      OK: SSHuttle stopped.
+      ${Lw}"
+      exit 0
+      fi
+      elif pgrep -q -lf sshuttle; then
+        xc "${Lo}
+        Warning: A running SSHuttle process has been detected that was not started by our script.
+        Killing process: $(pgrep -lfa sshuttle).
+        ${Lw}"
+        if pkill -lf sshuttle; then
+          xc "${Lg}
+          OK: Rogue SSHuttle process killed.
+          ${Lw}"
+          return 0
+          fi
+      else
+        xc "${Ly}
+        Info: SSHuttle not running
+        ${Lw}"
+        exit 0
+      fi
+}
+
+
 function checkRunning() {
   if pgrep -q -F ${spoctunnelPIDfile}; then
     xc "${Ly}
     Info: SShuttle aLready running
     ${Lw}"
     exit 0
-  elif pgrep -q -lf sshuttle; then
-    xc "${Lr}
-    Error: Rogue SSHuttle process found, killing all found processes.
-    ${Lw}"
-    pkill -lf sshuttle
-  fi
+    elif pgrep -q -lf sshuttle; then
+      stopSshuttle
+      fi
 }
 
 function startSshuttle() {
       export SSHPASS=${spoctunnelPass}
       sshpass -e sshuttle -v \
       -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort" \
-      -s ${homebrew_etc}/spoctunnel/spoc.allow.conf \
-      -X ${homebrew_etc}/spoctunnel/spoc.deny.conf \
+      -s ${homebrew_etc}/spoc.allow.conf \
+      -X ${homebrew_etc}/spoc.deny.conf \
       --ns-hosts 172.22.73.19 \
       --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 & pid=$!
       echo $pid > ${spoctunnelPIDfile}
@@ -115,22 +157,6 @@ function startSshuttle() {
         fi
 }
 
-function stopSshuttle() {
-  if pgrep -q -F ${spoctunnelPIDfile}; then
-    xc "${Ly}
-    Killing $(pgrep -lf -F ${spoctunnelPIDfile})
-    ${Lw}"
-    if pkill -F ${spoctunnelPIDfile}; then
-      xc "${Lg}OK: SSHuttle stopped${Lw}"
-      exit 0
-      fi
-    else
-    xc "${Ly}
-    Info: SSHuttle not running
-    ${lW}"
-    exit 0
-    fi
-}
 
 
 # SSHuttle option menu
@@ -176,11 +202,12 @@ postinstall)
   ;;
 *)
   xc "$0 (start|stop|logs|version) <ip>
-      start:          | Starts sshuttle using -s ${homebrew_etc}/spoctunnel/spoc.allow.conf and -X ${homebrew_etc}/spoctunnel/spoc.deny.conf
-      stop:           | Shuts down the sshuttle application
-      logs:           | View the spoctunnel log ${homebrew_varlog}/spoctunnel/spoctunnel.log (This will open in tail mode)
-                        Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
-      version:        | Spoctunnel version (Display Version for install validation)
+      ${Ly}start${Lw}          | Starts sshuttle using -s ${homebrew_etc}/spoc.allow.conf and -X ${homebrew_etc}/spoc.deny.conf
+      ${Ly}stop${Lw}           | Shuts down the sshuttle application
+      ${Ly}logs${Lw}           | View the spoctunnel log ${homebrew_varlog}/spoctunnel.log (This will open in tail mode)
+                        ${Lb}Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
+      ${Ly}version${Lw}        | Spoctunnel version (Display Version for install validation)
+      ${Ly}postinstall${Lw}    | Print post-installation instructions (These are normally handled by Homebrew upon installation)
       "
   ;;
 esac
