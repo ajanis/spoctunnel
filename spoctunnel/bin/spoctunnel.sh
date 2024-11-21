@@ -144,54 +144,69 @@ function checkRunning() {
     fi
 }
 
+# Start SSHuttle process, include SPOC ssh user, SSH password from MacOS Keychain (securely passed as ENV var to SSHPass, pass DNS allow/deny files, set pidfile)
 function startSshuttle() {
       export SSHPASS=${spoctunnelPass}
       sshpass -e sshuttle -v \
       -r "$SPOCUSER"@"$spoctunnelIP":"$spoctunnelPort" \
-      -s ${homebrew_etc}/spoc.allow.conf \
-      -X ${homebrew_etc}/spoc.deny.conf \
+      -s "${homebrew_etc}"/spoc.allow.conf \
+      -X "${homebrew_etc}"/spoc.deny.conf \
       --ns-hosts 172.22.73.19 \
-      --to-ns 172.22.73.19 >>${spoctunnelLog} 2>&1 & pid=$!
-      echo $pid > ${spoctunnelPIDfile}
+      --to-ns 172.22.73.19 >>"${spoctunnelLog}" 2>&1 & pid=$!
+      echo $pid > "${spoctunnelPIDfile}"
       sleep 10
       if ! kill -0 $pid; then
-        xc "${Lr}
-        Failed: SSHuttle process failed with code: $?"
+    xc "${Lr}
+    Failed: SSHuttle process failed with code: $?"
         exec $SHELL
         else
-        xc "${Lg}
-        OK: SSHuttle process started successfully"
+    xc "${Lg}
+    OK: SSHuttle process started successfully"
         exec $SHELL
         fi
 }
 
-# SSHuttle option menu
+# Spoctunnel Script Run Options
 case $spoctunnelOption in
+
 start)
+  # Start a new SSHuttle process after checking for existing processes, SPOC SSH user and password
   checkRunning
   checkSpocuser
   checkKeychainpass
   startSshuttle
   ;;
+
 stop)
+  # Stop running SSHuttle processes
   stopSshuttle
   ;;
+
 status)
+  # Check for running SSHuttle processes
   checkRunning
   ;;
+
 logs)
   less +F "${spoctunnelLog}"
   ;;
+
 version)
+  # Print current release version of Homebrew package
   xc "${Lg}Spoctunnel version ${spoctunnelVersion}${Lw}"
   ;;
+
 postinstall)
+
+  # Print post-install steps (normally handled by Homebrew on install)
+
   echo -e "${Ly}
   1) You will need to set your SPOC LDAP user.
      This can be done by answering script prompt each time you run the script, or by adding the following to your shell profile (RECOMMENDED):
      ${Lb}
-     > export SPOCUSER=\"<Your SPOC LDAP Username>\"
+     > export SPOCUSER='<Your SPOC LDAP Username>'
   ${Ly}
+
   2) Create a link to the custom resolver file installed by the Formula:
      ${Lb}
      > sudo ln -s $(brew --prefix)/etc/resolver /etc/resolver
@@ -200,24 +215,32 @@ postinstall)
        ${Lb}
        > sudo scutil --dns
   ${Ly}
+
   3) Create a link to the custom newsyslog log rotation rule installed by the Formula:
      ${Lb}
      > sudo ln -s $(brew --prefix)/etc/newsyslog.d/spoctunnel.conf /etc/newsyslog.d/spoctunnel.conf
   ${Ly}
+
   4) When you run the script for the first time, you will be prompted to add your SPOC LDAP password to the Mac OS Keychain.
      This password will be retrieved automatically when you run spoctunnel in the future.
-  ${Lw}
-  "
+  ${Lw}"
   ;;
 *)
-  xc "$0 (start|stop|logs|version) <ip>
-      ${Ly}start${Lw}          | Starts sshuttle using -s ${homebrew_etc}/spoc.allow.conf and -X ${homebrew_etc}/spoc.deny.conf
-      ${Ly}stop${Lw}           | Shuts down the sshuttle application
-      ${Ly}status${Lw}         | Get SSHuttle process info and kill rogue SSHuttle processes that were not created via this script.
-      ${Ly}logs${Lw}           | View the spoctunnel log ${homebrew_varlog}/spoctunnel.log (This will open in tail mode)
-                        ${Lb}Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
-      ${Ly}version${Lw}        | Spoctunnel version (Display Version for install validation)
-      ${Ly}postinstall${Lw}    | Print post-installation instructions (These are normally handled by Homebrew upon installation)
-      "
+  # Print Usage/Help
+  xc "$0 [start (Optional: Jump-Server IP or Hostname) (Optional: Jump-Server SSH Port)] | [stop] [status] [logs] [version] [postinstall] [help]
+
+  ${Lg2}start${Lw} | Starts sshuttle using -s ${homebrew_etc}/spoc.allow.conf and -X ${homebrew_etc}/spoc.deny.conf
+    ${Lb2}Optionally: Pass extra args: [#2 Jump Server IP/Hostname] [#3 Jump Server SSH Port]
+    ${Lb2}Recommended: Add an entry to your SSH config for 'spoc-jump' with desired Jump Server SSH IP and Port.
+      ${Ly2}Host spoc-jump
+            HostName 123.456.789.10
+            Port 2222$
+  ${Lg2}stop${Lw}  | Shuts down the sshuttle application
+  ${Lg2}status${Lw} | Get SSHuttle process info and kill rogue SSHuttle processes that were not created via this script.
+  ${Lg2}logs${Lw}  | View the spoctunnel log ${homebrew_varlog}/spoctunnel.log (This will open in tail mode)
+    ${Lb2}Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
+  ${Lg2}version${Lw} | Spoctunnel version (Display Version for install validation)
+  ${Lg2}postinstall${Lw} | Print post-installation instructions (These are normally handled by Homebrew upon installation)
+  "
   ;;
 esac
