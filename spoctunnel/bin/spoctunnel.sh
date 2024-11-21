@@ -15,9 +15,9 @@ spoctunnelPort=${3}
 spoctunnelVersion='SPOCTUNNEL_VERSION'
 
 # Override log locations for testing
-override=False
+: "${ST_OVERRIDE:=False}"
 
-if $override; then
+if $ST_OVERRIDE; then
 #overrides
 homebrew_etc='/usr/local/etc/spoctunnel'
 homebrew_varlog='/usr/local/var/log/spoctunnel'
