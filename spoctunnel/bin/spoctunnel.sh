@@ -1,40 +1,35 @@
 #!/bin/bash
 
 # Color vars for message output
-Lr="\033[38;5;9m"
-Lg="\033[38;5;35m"
-Ly="\033[38;5;184m"
-Lb="\033[38;5;39m"
-Lw="\033[38;5;15m"
+Lr="\033[38;5;124m"
+Lg="\033[38;5;40m"
+Ly="\033[38;5;011m"
+Lb="\033[38;5;004m"
+Lw="\033[38;5;254m"
 Lo="\033[38;5;208m"
+Lgr="\033[38;5;248m"
+Lb2="\033[38;5;32m"
+Lg2="\033[38;5;113m"
+Ly2="\033[38;5;178m"
+
 
 # Input parameters for script option and optional jump-server HOSTNAME/IP and SSH 
 spoctunnelOption=$1
 spoctunnelIP=${2:-"spoc-jump"}
 spoctunnelPort=${3}
-spoctunnelVersion='SPOCTUNNEL_VERSION'
-
-# Override log locations for testing
-: "${ST_OVERRIDE:=False}"
-
-if $ST_OVERRIDE; then
-#overrides
-homebrew_etc='/usr/local/etc/spoctunnel'
-homebrew_varlog='/usr/local/var/log/spoctunnel'
-homebrew_varrun='/usr/local/var/run/spoctunnel'
-else
-homebrew_etc='HOMEBREW_ETC'
-homebrew_varlog='HOMEBREW_VARLOG'
-homebrew_varrun='HOMEBREW_VARRUN'
-fi
-
+homebrew_etc="$(brew --prefix )/etc/spoctunnel"
+homebrew_varlog="$(brew --prefix )/var/log/spoctunnel"
+homebrew_varrun="$(brew --prefix )/var/run/spoctunnel"
 spoctunnelLog="${homebrew_varlog}/spoctunnel.log"
 spoctunnelPIDfile="${homebrew_varrun}/spoctunnel.pid"
+spoctunnelVersion='SPOCTUNNEL_VERSION'
 
+# Logging Function
 function xc() {
   echo -e "$@" > >(tee -a "${spoctunnelLog}")
 }
 
+# Check for user ENV('SPOCUSER'), Prompt if missing, Add to shell rcfile
 function checkSpocuser() {
   if [ -z "$SPOCUSER" ]; then
     xc "${Lo}
