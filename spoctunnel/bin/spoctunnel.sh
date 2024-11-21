@@ -46,6 +46,9 @@ function checkSpocuser() {
     sleep 1
     read -rp "Enter SPOC Active-Directory User: " SPOCSETUSER
     export SPOCUSER="${SPOCSETUSER}"
+    xc "${Lg}
+    OK: SPOC SSH user set and exported for current session.
+    ${Lw}"
     xc "${Ly}
     Info: Detected $SHELL as your currrent shell...
     ${Lw}"
@@ -97,8 +100,9 @@ function checkKeychainpass() {
 function stopSshuttle() {
   if pgrep -q -F ${spoctunnelPIDfile}; then
     xc "${Ly}
-    Info: Killing $(pgrep -lf -F ${spoctunnelPIDfile})
+    Info: Stopping SSHuttle process:
     ${Lw}"
+    pgrep -lfa -F ${spoctunnelPIDfile}
     if pkill -F ${spoctunnelPIDfile}; then
       xc "${Lg}
       OK: SSHuttle stopped.
@@ -108,8 +112,8 @@ function stopSshuttle() {
       elif pgrep -q -lf sshuttle; then
         xc "${Lo}
         Warning: A running SSHuttle process has been detected that was not started by our script.
-        Killing process: $(pgrep -lfa sshuttle).
         ${Lw}"
+        pgrep -lfa sshuttle
         if pkill -lf sshuttle; then
           xc "${Lg}
           OK: Rogue SSHuttle process killed.
@@ -124,16 +128,18 @@ function stopSshuttle() {
       fi
 }
 
-
 function checkRunning() {
   if pgrep -q -F ${spoctunnelPIDfile}; then
     xc "${Ly}
-    Info: SShuttle aLready running
+    Info: SShuttle aLready running:
     ${Lw}"
+    pgrep -lfa -F ${spoctunnelPIDfile}
     exit 0
     elif pgrep -q -lf sshuttle; then
       stopSshuttle
-      fi
+    else
+      return 0
+    fi
 }
 
 function startSshuttle() {
@@ -157,8 +163,6 @@ function startSshuttle() {
         fi
 }
 
-
-
 # SSHuttle option menu
 case $spoctunnelOption in
 start)
@@ -169,6 +173,9 @@ start)
   ;;
 stop)
   stopSshuttle
+  ;;
+status)
+  checkRunning
   ;;
 logs)
   less +F "${spoctunnelLog}"
@@ -204,6 +211,7 @@ postinstall)
   xc "$0 (start|stop|logs|version) <ip>
       ${Ly}start${Lw}          | Starts sshuttle using -s ${homebrew_etc}/spoc.allow.conf and -X ${homebrew_etc}/spoc.deny.conf
       ${Ly}stop${Lw}           | Shuts down the sshuttle application
+      ${Ly}status${Lw}         | Get SSHuttle process info and kill rogue SSHuttle processes that were not created via this script.
       ${Ly}logs${Lw}           | View the spoctunnel log ${homebrew_varlog}/spoctunnel.log (This will open in tail mode)
                         ${Lb}Interrupt (Ctrl+c) to scroll through the logfile in a vim-like environment.  (Press 'q' to exit)
       ${Ly}version${Lw}        | Spoctunnel version (Display Version for install validation)
