@@ -48,26 +48,31 @@ function checkSpocuser() {
     Info: Detected $SHELL as your currrent shell...
     ${Lw}"
     RCFILE="${HOME}/.$(basename "${SHELL}")rc"
-    if ! grep -E -q "^export SPOCUSER=[\'\"]${SPOCUSER}[\'\"]" "${RCFILE}"; then
-      xc "${Lo}
-      Warning: No 'SPOCUSER' export found in ${RCFILE}!  
-      We can add ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lo} to ${RCFILE} in the following step.
-      ${Lw}"
+    if grep -E -q "^export SPOCUSER=[\'\"]${SPOCUSER}[\'\"]" "${RCFILE}"; then
+    xc "${Ly}
+    Info: Found 'SPOCUSER' export in ${RCFILE}.
+    ${Lw}"
+    else
+    xc "${Lo}
+    Warning: No 'SPOCUSER' export found in ${RCFILE}!
+    We can add ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lo} to ${RCFILE} in the following step.
+    ${Lw}"
       sleep 1
       read -rp "Would you like to add 'export SPOCUSER=${SPOCUSER}' to ${RCFILE}? : [y/n]" SPOCEXPORT
       if [[ "${SPOCEXPORT}" =~ ([y|Y](:?[e|E][S|s])?) ]]; then
-        sed -i '' -e '$a\
+sed -i '' -e '$a\
 export SPOCUSER="'"${SPOCUSER}"'"
-        ' "${RCFILE}"
-        xc "${Lg}
-        OK: Added ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lg} to ${RCFILE}
-        ${Lo}"
+' "${RCFILE}"
+    xc "${Lg}
+    OK: Added ${Ly}'export SPOCUSER=\"${SPOCUSER}\"'${Lg} to ${RCFILE}
+    ${Lo}"
         fi
       fi
     fi
   return
 }
-# MAC OS Keychain
+
+# Check for ENV('spoctunnelPass') for SSH login, Prompt if missing, Store in MacOS Keychain for future use
 function checkKeychainpass() {
   spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
   if [ -z "$spoctunnelPass" ]; then
@@ -79,56 +84,58 @@ function checkKeychainpass() {
     ${Lw}"
     sleep 1
     if security add-generic-password -a "${USER}" -s 'SPOC VPN' -w; then
-      xc "${Lg}
-      OK: Password Stored in Keychain...
-      ${Lw}"
+    xc "${Lg}
+    OK: Password Stored in Keychain...
+    ${Lw}"
       spoctunnelPass="$(security find-generic-password -s 'SPOC VPN' -a "${USER}" -w)"
     else
-      xc "${Lr}
-      Error: Password creation failed
-      ${Lw}"
+    xc "${Lr}
+    Error: Password creation failed
+    ${Lw}"
     fi
   fi
   return
 }
 
+# Stop SSHuttle process started by this script via pidfile, Detect running process not started by this script and kill before further action
 function stopSshuttle() {
-  if pgrep -q -F ${spoctunnelPIDfile}; then
+  if pgrep -q -F "${spoctunnelPIDfile}"; then
     xc "${Ly}
     Info: Stopping SSHuttle process:
-    ${Lw}"
-    pgrep -lfa -F ${spoctunnelPIDfile}
-    if pkill -F ${spoctunnelPIDfile}; then
-      xc "${Lg}
-      OK: SSHuttle stopped.
-      ${Lw}"
+    ${Lb2}"
+    pgrep -lfa -F "${spoctunnelPIDfile}"
+    if pkill -F "${spoctunnelPIDfile}"; then
+    xc "${Lg}
+    OK: SSHuttle stopped.
+    ${Lb2}"
       exit 0
       fi
       elif pgrep -q -lf sshuttle; then
-        xc "${Lo}
-        Warning: A running SSHuttle process has been detected that was not started by our script.
-        ${Lw}"
-        pgrep -lfa sshuttle
-        if pkill -lf sshuttle; then
-          xc "${Lg}
-          OK: Rogue SSHuttle process killed.
-          ${Lw}"
+    xc "${Lo}
+    Warning: A running SSHuttle process has been detected that was not started by our script.
+    ${Lb2}"
+        pgrep -xo sshuttle
+        if pkill -fo sshuttle; then
+    xc "${Lg}
+    OK: Rogue SSHuttle process killed.
+    ${Lw}"
           return 0
           fi
       else
-        xc "${Ly}
-        Info: SSHuttle not running
-        ${Lw}"
+    xc "${Ly}
+    Info: SSHuttle not running
+    ${Lw}"
         exit 0
       fi
 }
 
+# Check for running SSHuttle process started by this script, also check for process not started by this script and call function to terminate
 function checkRunning() {
-  if pgrep -q -F ${spoctunnelPIDfile}; then
+  if pgrep -q -F "${spoctunnelPIDfile}"; then
     xc "${Ly}
     Info: SShuttle aLready running:
-    ${Lw}"
-    pgrep -lfa -F ${spoctunnelPIDfile}
+    ${Lb2}"
+    pgrep -lfa -F "${spoctunnelPIDfile}"
     exit 0
     elif pgrep -q -lf sshuttle; then
       stopSshuttle
