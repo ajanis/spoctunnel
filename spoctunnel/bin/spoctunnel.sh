@@ -4,7 +4,7 @@
 Lr="\033[38;5;124m"
 Lg="\033[38;5;40m"
 Ly="\033[38;5;011m"
-Lb="\033[38;5;004m"
+Lb="\033[38;5;073m"
 Lw="\033[38;5;254m"
 Lo="\033[38;5;208m"
 Lgr="\033[38;5;248m"
@@ -102,20 +102,23 @@ function stopSshuttle() {
   if pgrep -q -F "${spoctunnelPIDfile}"; then
     xc "${Ly}
     Info: Stopping SSHuttle process:
-    ${Lb2}"
+    ${Lb}"
     pgrep -lfa -F "${spoctunnelPIDfile}"
+    xc "${Lg}"
     if pkill -F "${spoctunnelPIDfile}"; then
     xc "${Lg}
     OK: SSHuttle stopped.
-    ${Lb2}"
+    ${Lw}"
       exit 0
       fi
       elif pgrep -q -lf sshuttle; then
     xc "${Lo}
     Warning: A running SSHuttle process has been detected that was not started by our script.
-    ${Lb2}"
-        pgrep -xo sshuttle
+    ${Lb}"
+        pgrep -lfao sshuttle
+    xc "${Lgr}"
         if pkill -fo sshuttle; then
+        sleep 1
     xc "${Lg}
     OK: Rogue SSHuttle process killed.
     ${Lw}"
@@ -133,8 +136,8 @@ function stopSshuttle() {
 function checkRunning() {
   if pgrep -q -F "${spoctunnelPIDfile}"; then
     xc "${Ly}
-    Info: SShuttle aLready running:
-    ${Lb2}"
+    Info: SSHuttle process aLready running:
+    ${Lb}"
     pgrep -lfa -F "${spoctunnelPIDfile}"
     exit 0
     elif pgrep -q -lf sshuttle; then
