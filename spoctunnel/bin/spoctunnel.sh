@@ -204,27 +204,31 @@ postinstall)
   # Print post-install steps (normally handled by Homebrew on install)
 
   xc "${Ly}
-  1) ${Lb}You will need to set your SPOC LDAP user.
-     The first time you run this script, you will be prompted for your SPOC LDAP username,
-     You will also be prompted to add it to ${RCFILE} if desired.
+  1) ${Lb}The first time you run this script, you will be prompted for your ${Lb2}SPOC LDAP Username${Lb}.
+     You will also be prompted to automatically add it to ${Lb2}'${HOME}/.$(basename "${SHELL}")rc'${Lb}.
+     To do this manually, run the following command:
      ${Ly2}
-     > export SPOCUSER='<Your SPOC LDAP Username>'
+     > echo 'export SPOCUSER=\"<Your SPOC LDAP Username>\"' >> ${HOME}/.$(basename "${SHELL}")rc
   ${Ly}
-  2) ${Lb}When you run the script for the first time, you will be prompted to add your SPOC LDAP password to the Mac OS Keychain.
-     This password will be retrieved automatically when you run spoctunnel in the future.
+  2) ${Lb}When you run the script for the first time, you will be prompted to add your ${Lb2}SPOC LDAP Password${Lb} to the Mac OS Keychain.
+     Your password will be securely retrieved automatically when you run the script in the future.
+     To do thius manually, run the following commands:
      ${Ly2}
      > security find-generic-password -a ${USER} -s 'SPOC VPN' -w
      > security add-generic-password -a ${USER} -s 'SPOC VPN' -w
   ${Ly}
-  3a) ${Lb}Create a link to the custom resolver file installed by the Formula:
+  3a) ${Lb}Create a link to the custom resolver file installed by the Formula.
+      This must be done manually.
      ${Ly2}
      > sudo ln -s $(brew --prefix)/etc/resolver /etc/resolver
   ${Ly}
   3b) ${Lb}Run the following command and look for the resolver in the output (toward the end):
+      This must be done manually.
       ${Ly2}
       > sudo scutil --dns
   ${Ly}
   4) ${Lb}Create a link to the custom newsyslog log rotation rule installed by the Formula:
+     This must be done manually.
      ${Ly2}
      > sudo ln -s $(brew --prefix)/etc/newsyslog.d/spoctunnel.conf /etc/newsyslog.d/spoctunnel.conf
   ${Lw}"
